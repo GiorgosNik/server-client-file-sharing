@@ -129,7 +129,6 @@ int main(int argc, char *argv[])
         }
         cout << "Accepted connection\n";
         pthread_create(&id, NULL, &commThread, (void*)(&newsock));
-        //commThread(newsock);
     }
     return 0;
 }

@@ -173,6 +173,21 @@ void getDirStructure(char *dir, int socket)
     }
 }
 
-void copyFile(char* buf, int socket){
-    
+void copyFile(char *fileName, int socket)
+{
+    char buf[256+1];
+    cout << "Socket In: " << socket << "\n";
+    string fileContents = "";
+    do
+    {
+        memset(buf, 0, 256+1);
+        if (read(socket, buf, 256) < 0)
+            perror_exit("read");
+        if (strcmp(buf, "EOF\n") != 0)
+        {
+            fileContents = fileContents + string(buf);
+        }
+
+    } while (strcmp(buf, "EOF\n") != 0);
+    cout << "File Contents: " << fileContents << "\n";
 }
