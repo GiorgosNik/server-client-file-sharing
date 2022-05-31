@@ -35,6 +35,7 @@ bool dirExists(char *dir);
 void addToQueue(int socket, std::string filename);
 void getDirStructure(char *dir, int socket);
 void copyFile(char* buf, int socket);
+void createDir(char* fileName);
 
 
 extern pthread_mutex_t queueLock;

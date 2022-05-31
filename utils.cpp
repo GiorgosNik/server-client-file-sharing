@@ -68,7 +68,7 @@ void *commThread(void *arg)
                 sockets->addToList(newsock);
             }
             pthread_mutex_unlock(&socketListLock);
-             if (write(newsock, to_string(blockSize).c_str(), 256) < 0)
+            if (write(newsock, to_string(blockSize).c_str(), 256) < 0)
             {
                 perror_exit("write");
             }
@@ -177,14 +177,78 @@ void getDirStructure(char *dir, int socket)
     }
 }
 
+void createDir(char *fileName)
+{
+    int dirSize;
+    string directory = fileName;
+    string dirAcum = "";
+    dirSize = string(fileName).find_last_of("/");
+    directory.resize(dirSize + 1);
+    char *token = NULL;
+    char *temp;
+    char *fileNameBuf = new char[strlen(directory.c_str()) + 1];
+    strcpy(fileNameBuf, directory.c_str());
+    if ((directory.c_str())[0] == '.')
+    {
+        directory.erase(directory.begin());
+    }
+    cout << "Directory: " << directory << "\n";
+
+    // Create the directory
+    if (!dirExists((char *)(string("./tmp/")).c_str()))
+    {
+        mkdir((string("./tmp/")).c_str(), 0777);
+        if (!dirExists((char *)(dirAcum).c_str()))
+        {
+            if (mkdir((string("./tmp/")).c_str(), 0777) < 0)
+            {
+                perror_exit("mkdir");
+            }
+        }
+    }
+    mkdir((string("./tmp/")).c_str(), 0777);
+    dirAcum += "./tmp";
+    // Create subdirs
+
+    token = strtok_r(fileNameBuf, "/", &temp);
+    while (token != NULL)
+    {
+        cout << "Subfolder: " << token << "\n";
+        dirAcum += "/" + string(token);
+        cout << "Acum: " << dirAcum << "\n";
+        if (!dirExists((char *)(dirAcum).c_str()))
+        {
+            if (mkdir((dirAcum).c_str(), 0777) < 0)
+            {
+                perror_exit("mkdir");
+            }
+        }
+
+        token = strtok_r(NULL, "/", &temp);
+    }
+
+    while (!dirExists((char *)(string("./tmp/") + directory).c_str()))
+        ;
+
+    cout << "Directory Created\n";
+    // If file exists, delete
+    if (dirExists((char *)(string("./tmp/") + string(fileName)).c_str()))
+    {
+        cout << "Directory Exists: " << fileName << "\n";
+    }
+    delete[] fileNameBuf;
+}
+
 void copyFile(char *fileName, int socket)
 {
-    char buf[blockSize+1];
-    cout << "Filename: " << fileName << "\n";
+    char buf[blockSize + 1];
     string fileContents = "";
+    int dirSize, pid;
+    cout << "Filename: " << fileName << "\n";
+
     do
     {
-        memset(buf, 0, blockSize+1);
+        memset(buf, 0, blockSize + 1);
         if (read(socket, buf, blockSize) < 0)
             perror_exit("read");
         if (strcmp(buf, "EOF\n") != 0)
@@ -193,5 +257,6 @@ void copyFile(char *fileName, int socket)
         }
 
     } while (strcmp(buf, "EOF\n") != 0);
-    cout << "File Contents: " << fileContents << "\n";
+
+    createDir(fileName);
 }
