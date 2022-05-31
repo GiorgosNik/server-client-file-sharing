@@ -83,11 +83,14 @@ void *execute_all_jobs(void *arg)
         queue = queue->getNext();
         queueSize--;
         pthread_cond_signal(&queueFullCond);
+        pthread_mutex_lock(&subjectLock);
         pool->setSubject(pool->convertId(pthread_self()), job->getSocket());
+        pthread_mutex_unlock(&subjectLock);
         pthread_mutex_unlock(&queueLock);
         sockets->lock(job->getSocket());
 
         sendFile(job->getSocket(), job->getFilename());
+        pthread_mutex_lock(&subjectLock);
         pool->setSubject(pool->convertId(pthread_self()), -1);
         if (pool->chechSubject(job->getSocket()) && (queue == NULL || queue->isLast(job->getSocket())))
         {
@@ -95,7 +98,7 @@ void *execute_all_jobs(void *arg)
             cout << "Closing connection.\n";
             close(job->getSocket());
         }
-
+        pthread_mutex_unlock(&subjectLock);
         sockets->unlock(job->getSocket());
         delete job;
     }
@@ -109,7 +112,7 @@ void sendFile(int socket, string fileName)
     memset(msgbuf,0,blockSize+1);
     if (write(socket, fileName.c_str(), 256) < 0)
     {
-        perror_exit("write");
+        perror_exit((char*)(string("write").c_str()));
     }
     textFile = open(fileName.c_str(), O_RDONLY);
     readReturn = read(textFile, msgbuf, blockSize);
@@ -118,14 +121,14 @@ void sendFile(int socket, string fileName)
         
         if (write(socket, msgbuf, blockSize) < 0)
         {
-            perror_exit("write");
+            perror_exit((char*)(string("write").c_str()));
         }
         memset(msgbuf,0,blockSize+1);
         readReturn = read(textFile, msgbuf, blockSize);
     }
     if (write(socket, string("EOF\n").c_str(), blockSize) < 0)
     {
-        perror_exit("write");
+        perror_exit((char*)(string("write").c_str()));
     }
     close(textFile);
 }

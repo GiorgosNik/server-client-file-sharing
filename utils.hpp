@@ -40,6 +40,7 @@ void createFile(char* fileName, std::string contents);
 
 extern pthread_mutex_t queueLock;
 extern pthread_mutex_t socketListLock;
+extern pthread_mutex_t subjectLock;
 extern pthread_cond_t queueEmptyCond;
 extern pthread_cond_t queueFullCond;
 extern jobQueue *queue;

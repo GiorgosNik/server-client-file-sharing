@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 
     /* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-        perror_exit("socket");
+        perror_exit((char*)(string("socket")).c_str());
     }
 
     /* Find server address */
@@ -94,20 +94,20 @@ int main(int argc, char *argv[])
     server.sin_port = htons(port);
     if (connect(sock, serverptr, sizeof(server)) < 0)
     {
-        perror_exit("connect");
+        perror_exit((char*)(string("connect")).c_str());
     }
 
     cout << "Connecting to " << serverIp << " port " << port << "\n";
     if (write(sock, directoryArray, 256) < 0)
-        perror_exit("write");
+        perror_exit((char*)(string("write")).c_str());
     if (read(sock, buf, 256) < 0)
-            perror_exit("read");  
+            perror_exit((char*)(string("read")).c_str());  
     blockSize = atoi(buf);
     cout<<"BlockSize "<<blockSize<<"\n";
     do
     {
         if (read(sock, buf, 256) < 0)
-            perror_exit("read");
+            perror_exit((char*)(string("read")).c_str());
         if (strcmp(buf, "END\n") != 0)
         {
             copyFile(buf,sock);

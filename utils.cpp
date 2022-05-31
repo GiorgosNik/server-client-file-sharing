@@ -7,6 +7,7 @@ bool globalExit;
 jobScheduler *pool;
 socketLockList *sockets = NULL;
 pthread_mutex_t queueLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t subjectLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t socketListLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queueEmptyCond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t queueFullCond = PTHREAD_COND_INITIALIZER;
@@ -50,7 +51,6 @@ void *commThread(void *arg)
 {
     int newsock = *(int *)arg;
     char buf[1001];
-    struct stat buffer;
     int readSize;
     while ((readSize = read(newsock, buf, 1000)) > 0)
     {
@@ -70,7 +70,7 @@ void *commThread(void *arg)
             pthread_mutex_unlock(&socketListLock);
             if (write(newsock, to_string(blockSize).c_str(), 256) < 0)
             {
-                perror_exit("write");
+                perror_exit((char*)(string("write").c_str()));
             }
             getDirStructure(buf, newsock);
         }
@@ -79,18 +79,19 @@ void *commThread(void *arg)
             cout << "Directory does not exist\n";
             if (write(newsock, string("Directory does not exist\n").c_str(), 256) < 0)
             {
-                perror_exit("write");
+                perror_exit((char*)(string("write").c_str()));
             }
             if (write(newsock, string("END\n").c_str(), 256) < 0)
             {
-                perror_exit("write");
+                perror_exit((char*)(string("write").c_str()));
             }
         }
         if (readSize < 1000)
         {
-            return NULL;
+            break;
         }
     }
+    return NULL;
 }
 
 bool dirExists(char *dir)
@@ -104,7 +105,7 @@ void getDirStructure(char *dir, int socket)
     char inbuf[256], *temp1, *temp2, *strTokBuff, *lineToken, *tempLineToken, *directoryToken;
     pid_t pid;
     string buff = "", directory, fileName;
-    int listenerPipe[2], i = 0, size = 0, readReturn;
+    int listenerPipe[2], readReturn;
 
     // Create Pipe for listener
     if (pipe(listenerPipe) == -1)
@@ -112,7 +113,6 @@ void getDirStructure(char *dir, int socket)
         perror(" pipe call ");
         exit(1);
     }
-
     // Create the listener
     pid = fork();
     if (pid == -1)
@@ -122,23 +122,26 @@ void getDirStructure(char *dir, int socket)
     }
     else if (pid == 0)
     {
-        sleep(1);
         // Listener Code
         // Set the write end of the pipe to get the output of inotifywait
         close(listenerPipe[0]);
         dup2(listenerPipe[1], STDOUT_FILENO);
-        close(listenerPipe[1]);
-
+        cout<<"dir: "<<dir<<"\n";
         // List files and directories
-        execl("/bin/ls", "ls", "-R", dir);
+        if(execl("/bin/ls", "/bin/ls", "-R", dir, NULL) < 0){
+            perror("execl");
+        }
     }
     else
     {
-
+        sleep(1);
         memset(inbuf, 0, 256);
+        cout<<"GOT HERE\n";
         readReturn = read(listenerPipe[0], inbuf, 256);
+        cout<<"GOT HERE\n";
         buff += string(inbuf);
         memset(inbuf, 0, 256);
+
         while (readReturn == 256)
         {
             readReturn = read(listenerPipe[0], inbuf, 256);
@@ -204,7 +207,7 @@ void createFile(char *fileName, string contents)
     {
         if (mkdir((string("./tmp/")).c_str(), 0777) < 0)
         {
-            perror_exit("mkdir");
+            perror_exit((char*)(string("mkdir")).c_str());
         }
     }
     dirAcum += "./tmp";
@@ -218,7 +221,7 @@ void createFile(char *fileName, string contents)
         {
             if (mkdir((dirAcum).c_str(), 0777) < 0)
             {
-                perror_exit("mkdir");
+                perror_exit((char*)(string("mkdir")).c_str());
             }
         }
 
@@ -235,7 +238,7 @@ void createFile(char *fileName, string contents)
         cout << "Directory Exists: " << (string("./tmp/") + string(fileName)) << "\n";
         if (remove((string("./tmp/") + string(fileName)).c_str()) != 0)
         {
-            perror("delete");
+            perror((char*)(string("delete")).c_str());
         }
     }
 
@@ -259,14 +262,13 @@ void copyFile(char *fileName, int socket)
 {
     char buf[blockSize + 1];
     string fileContents = "";
-    int dirSize, pid;
     cout << "Filename: " << fileName << "\n";
 
     do
     {
         memset(buf, 0, blockSize + 1);
         if (read(socket, buf, blockSize) < 0)
-            perror_exit("read");
+            perror_exit((char*)(string("read")).c_str());
         if (strcmp(buf, "EOF\n") != 0)
         {
             fileContents = fileContents + string(buf);

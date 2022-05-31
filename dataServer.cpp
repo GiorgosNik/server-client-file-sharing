@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     struct sockaddr *serverptr = (struct sockaddr *)&server;
     struct sockaddr *clientptr = (struct sockaddr *)&client;
     struct hostent *rem;
-    socklen_t clientlen;
+    socklen_t clientlen = sizeof(client);
     char buf[1];
     char testBuf[200];
     memset(testBuf, 0, 200);
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     /* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        perror_exit("socket");
+        perror_exit((char*)(string("socket").c_str()));
     }
 
     server.sin_family = AF_INET; /* Internet domain */
@@ -110,13 +110,13 @@ int main(int argc, char *argv[])
     /* Bind socket to address */
     if (bind(sock, serverptr, sizeof(server)) < 0)
     {
-        perror_exit("bind");
+        perror_exit((char*)(string("bind").c_str()));
     }
 
     /* Listen for connections */
     if (listen(sock, 5) < 0)
     {
-        perror_exit("listen");
+        perror_exit((char*)(string("listen").c_str()));
     }
 
     cout << "Listening for connections to port " << port << "\n";
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
     {
         if ((newsock = accept(sock, clientptr, &clientlen)) < 0)
         {
-            perror_exit("accept");
+            perror_exit((char*)(string("accept").c_str()));
         }
         cout << "Accepted connection\n";
         pthread_create(&id, NULL, &commThread, (void*)(&newsock));
