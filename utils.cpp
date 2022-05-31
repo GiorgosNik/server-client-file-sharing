@@ -145,13 +145,12 @@ void getDirStructure(char *dir, int socket)
             buff += string(inbuf);
             memset(inbuf, 0, 256);
         }
-        cout << "Read: " << buff << "\n";
         if (readReturn < 0)
         {
             perror(" Read from pipe \n");
             exit(1);
         }
-
+        cout << "Read LS: " << buff << "\n####\n";
         strTokBuff = new char[buff.length() + 1];
         strcpy(strTokBuff, buff.c_str());
         lineToken = strtok_r(strTokBuff, "\n", &temp1);
@@ -167,8 +166,12 @@ void getDirStructure(char *dir, int socket)
             }
             else
             {
-                // Line represents a file
-                addToQueue(socket, string(directory) + "/" + string(lineToken));
+                if (!dirExists((char *)(directory+ "/" +string(lineToken) + "/").c_str()))
+                {
+                    cout<<"Sending file "<<(string(directory) + "/" + string(lineToken))<<" to queue\n";
+                    // Line represents a file
+                    addToQueue(socket, string(directory) + "/" + string(lineToken));
+                }
             }
             lineToken = strtok_r(NULL, "\n", &temp1);
             delete[] tempLineToken;
@@ -199,17 +202,11 @@ void createFile(char *fileName, string contents)
 
     if (!dirExists((char *)(string("./tmp/")).c_str()))
     {
-        mkdir((string("./tmp/")).c_str(), 0777);
-        if (!dirExists((char *)(dirAcum).c_str()))
+        if (mkdir((string("./tmp/")).c_str(), 0777) < 0)
         {
-            if (mkdir((string("./tmp/")).c_str(), 0777) < 0)
-            {
-                perror_exit("mkdir");
-            }
+            perror_exit("mkdir");
         }
     }
-
-    mkdir((string("./tmp/")).c_str(), 0777);
     dirAcum += "./tmp";
 
     // Create subdirs
