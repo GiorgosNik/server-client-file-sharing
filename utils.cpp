@@ -177,24 +177,26 @@ void getDirStructure(char *dir, int socket)
     }
 }
 
-void createDir(char *fileName)
+void createFile(char *fileName, string contents)
 {
-    int dirSize;
+    int outFile, dirSize;
     string directory = fileName;
     string dirAcum = "";
+    char *fileNameBuf, *token, *temp;
+
     dirSize = string(fileName).find_last_of("/");
     directory.resize(dirSize + 1);
-    char *token = NULL;
-    char *temp;
-    char *fileNameBuf = new char[strlen(directory.c_str()) + 1];
+    fileNameBuf = new char[strlen(directory.c_str()) + 1];
+    token = NULL;
     strcpy(fileNameBuf, directory.c_str());
+
+    // Create the directory
     if ((directory.c_str())[0] == '.')
     {
         directory.erase(directory.begin());
     }
     cout << "Directory: " << directory << "\n";
 
-    // Create the directory
     if (!dirExists((char *)(string("./tmp/")).c_str()))
     {
         mkdir((string("./tmp/")).c_str(), 0777);
@@ -206,16 +208,15 @@ void createDir(char *fileName)
             }
         }
     }
+
     mkdir((string("./tmp/")).c_str(), 0777);
     dirAcum += "./tmp";
-    // Create subdirs
 
+    // Create subdirs
     token = strtok_r(fileNameBuf, "/", &temp);
     while (token != NULL)
     {
-        cout << "Subfolder: " << token << "\n";
         dirAcum += "/" + string(token);
-        cout << "Acum: " << dirAcum << "\n";
         if (!dirExists((char *)(dirAcum).c_str()))
         {
             if (mkdir((dirAcum).c_str(), 0777) < 0)
@@ -227,15 +228,33 @@ void createDir(char *fileName)
         token = strtok_r(NULL, "/", &temp);
     }
 
+    // Wait for directory Creation
     while (!dirExists((char *)(string("./tmp/") + directory).c_str()))
         ;
 
-    cout << "Directory Created\n";
     // If file exists, delete
     if (dirExists((char *)(string("./tmp/") + string(fileName)).c_str()))
     {
-        cout << "Directory Exists: " << fileName << "\n";
+        cout << "Directory Exists: " << (string("./tmp/") + string(fileName)) << "\n";
+        if (remove((string("./tmp/") + string(fileName)).c_str()) != 0)
+        {
+            perror("delete");
+        }
     }
+
+    outFile = open((string("./tmp/") + string(fileName)).c_str(), O_CREAT | O_RDWR, 0644);
+    if (outFile == -1)
+    {
+        perror(" Creating .out file ");
+        exit(1);
+    }
+    if (write(outFile, contents.c_str(), contents.size()) < 0)
+    {
+        perror(" Problem with writing ");
+        exit(5);
+    }
+    close(outFile);
+
     delete[] fileNameBuf;
 }
 
@@ -258,5 +277,5 @@ void copyFile(char *fileName, int socket)
 
     } while (strcmp(buf, "EOF\n") != 0);
 
-    createDir(fileName);
+    createFile(fileName, fileContents);
 }
