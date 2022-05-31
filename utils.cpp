@@ -68,6 +68,10 @@ void *commThread(void *arg)
                 sockets->addToList(newsock);
             }
             pthread_mutex_unlock(&socketListLock);
+             if (write(newsock, to_string(blockSize).c_str(), 256) < 0)
+            {
+                perror_exit("write");
+            }
             getDirStructure(buf, newsock);
         }
         else
@@ -175,13 +179,13 @@ void getDirStructure(char *dir, int socket)
 
 void copyFile(char *fileName, int socket)
 {
-    char buf[256+1];
-    cout << "Socket In: " << socket << "\n";
+    char buf[blockSize+1];
+    cout << "Filename: " << fileName << "\n";
     string fileContents = "";
     do
     {
-        memset(buf, 0, 256+1);
-        if (read(socket, buf, 256) < 0)
+        memset(buf, 0, blockSize+1);
+        if (read(socket, buf, blockSize) < 0)
             perror_exit("read");
         if (strcmp(buf, "EOF\n") != 0)
         {

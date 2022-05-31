@@ -105,25 +105,25 @@ void *execute_all_jobs(void *arg)
 void sendFile(int socket, string fileName)
 {
     int textFile, readReturn;
-    char msgbuf[256+1];
-    memset(msgbuf,0,256+1);
+    char msgbuf[blockSize+1];
+    memset(msgbuf,0,blockSize+1);
     if (write(socket, fileName.c_str(), 256) < 0)
     {
         perror_exit("write");
     }
     textFile = open(fileName.c_str(), O_RDONLY);
-    readReturn = read(textFile, msgbuf, 256);
+    readReturn = read(textFile, msgbuf, blockSize);
     while (readReturn > 0)
     {
         
-        if (write(socket, msgbuf, 256) < 0)
+        if (write(socket, msgbuf, blockSize) < 0)
         {
             perror_exit("write");
         }
-        memset(msgbuf,0,256+1);
-        readReturn = read(textFile, msgbuf, 256);
+        memset(msgbuf,0,blockSize+1);
+        readReturn = read(textFile, msgbuf, blockSize);
     }
-    if (write(socket, string("EOF\n").c_str(), 256) < 0)
+    if (write(socket, string("EOF\n").c_str(), blockSize) < 0)
     {
         perror_exit("write");
     }
