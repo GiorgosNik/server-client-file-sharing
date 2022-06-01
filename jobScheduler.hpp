@@ -21,5 +21,4 @@ public:
 };
 
 void *execute_all_jobs(void *arg);
-void sendFile(int socket, std::string fileName);
 #endif //JOBSCHEDULER 

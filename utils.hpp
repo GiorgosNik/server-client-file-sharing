@@ -22,21 +22,23 @@
 #include <pthread.h>
 #include "jobScheduler.hpp"
 #include "socketLockList.hpp"
+#include "pidList.hpp"
 
 class jobQueue;
 class jobScheduler;
 class socketLockList;
+class pidList;
 
 void child_server(int newsock);
 void perror_exit(char *message);
-void sigchld_handler(int sig);
+void sigintHandler(int sig);
 void* commThread(void * arg);
 bool dirExists(char *dir);
 void addToQueue(int socket, std::string filename);
 void getDirStructure(char *dir, int socket);
 void copyFile(char* buf, int socket);
 void createFile(char* fileName, std::string contents);
-
+void sendFile(int socket, std::string fileName);
 
 extern pthread_mutex_t queueLock;
 extern pthread_mutex_t socketListLock;
@@ -45,6 +47,7 @@ extern pthread_cond_t queueEmptyCond;
 extern pthread_cond_t queueFullCond;
 extern jobQueue *queue;
 extern socketLockList *sockets;
+extern pidList *commThreads;
 extern bool globalExit;
 extern jobScheduler* pool;
 extern int blockSize;

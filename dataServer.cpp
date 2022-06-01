@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     memset(testBuf, 0, 200);
 
     // Set Signal Handler to reap children
-    signal(SIGCHLD, sigchld_handler);
+    signal(SIGINT, sigintHandler);
 
     // Set the arguments
     if (argc != 9)
@@ -129,6 +129,11 @@ int main(int argc, char *argv[])
         }
         cout << "Accepted connection\n";
         pthread_create(&id, NULL, &commThread, (void*)(&newsock));
+        if(commThreads == NULL){
+            commThreads = new pidList(id);
+        }else{
+            commThreads->addToList(id);
+        }
     }
     return 0;
 }
