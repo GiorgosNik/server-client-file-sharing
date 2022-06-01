@@ -7,9 +7,9 @@ jobScheduler ::jobScheduler(int execution_threads)
     this->execution_threads = execution_threads;
     this->tids = new pthread_t[execution_threads];
     this->subjectSocket = new int[execution_threads];
-    memset(this->subjectSocket, -1, execution_threads);
     for (int i = 0; i < this->execution_threads; i++)
     {
+        this->subjectSocket[i] = -1;
         pthread_create(&this->tids[i], NULL, &execute_all_jobs, NULL);
     }
 }
@@ -55,10 +55,6 @@ bool jobScheduler::chechSubject(int socket)
 
 jobScheduler ::~jobScheduler()
 {
-    for (int i = 0; i < this->execution_threads; i++)
-    {
-        pthread_join(this->tids[i], NULL);
-    }
     delete[] this->tids;
     delete[] this->subjectSocket;
 }
@@ -105,30 +101,3 @@ void *execute_all_jobs(void *arg)
     return NULL;
 }
 
-void sendFile(int socket, string fileName)
-{
-    int textFile, readReturn;
-    char msgbuf[blockSize+1];
-    memset(msgbuf,0,blockSize+1);
-    if (write(socket, fileName.c_str(), 256) < 0)
-    {
-        perror_exit((char*)(string("write").c_str()));
-    }
-    textFile = open(fileName.c_str(), O_RDONLY);
-    readReturn = read(textFile, msgbuf, blockSize);
-    while (readReturn > 0)
-    {
-        
-        if (write(socket, msgbuf, blockSize) < 0)
-        {
-            perror_exit((char*)(string("write").c_str()));
-        }
-        memset(msgbuf,0,blockSize+1);
-        readReturn = read(textFile, msgbuf, blockSize);
-    }
-    if (write(socket, string("EOF\n").c_str(), blockSize) < 0)
-    {
-        perror_exit((char*)(string("write").c_str()));
-    }
-    close(textFile);
-}

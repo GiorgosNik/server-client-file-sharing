@@ -1,11 +1,12 @@
 #include "utils.hpp"
 #include "jobQueue.hpp"
 using namespace std;
-/* Wait for all dead child processes */
+
 jobQueue *queue = NULL;
 bool globalExit;
 jobScheduler *pool;
 socketLockList *sockets = NULL;
+pidList *commThreads = NULL;
 pthread_mutex_t queueLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t subjectLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t socketListLock = PTHREAD_MUTEX_INITIALIZER;
@@ -15,10 +16,64 @@ int blockSize = -1;
 int queueSize = 0;
 int queueLimit;
 
-void sigchld_handler(int sig)
-{
-    while (waitpid(-1, NULL, WNOHANG) > 0)
-        ;
+void sigintHandler(int sig){
+    jobQueue* currQueueNode = NULL;
+    jobQueue* tempQueueNode = NULL;
+
+    socketLockList* currSocketNode = NULL;
+    socketLockList* tempSocketNode = NULL;
+
+    pidList* currPidNode = NULL;
+    pidList* tempPidNode = NULL;
+    cout<<"\nDELETING\n";
+
+    // Wait for all workers to finish and exit
+    globalExit = true;
+    pthread_cond_broadcast(&queueEmptyCond);
+    pthread_cond_broadcast(&queueFullCond);
+    for(int i = 0; i < pool->getThreads(); i++){
+        pthread_join((pool->getThreadIds())[i], NULL);
+    }
+
+    // Then, wait for all comms threads
+    currPidNode = commThreads;
+    commThreads = NULL;
+    while(currPidNode != NULL){
+        pthread_join(currPidNode->getId(), NULL);
+        tempPidNode = currPidNode;
+        currPidNode = currPidNode->getNext();
+        delete tempPidNode;
+        tempPidNode = NULL;
+    }
+    currPidNode = NULL;
+
+    // Delete the global data
+    // First, delete the job queue
+    currQueueNode = queue;
+    queue = NULL;
+    while(currQueueNode != NULL){
+        tempQueueNode = currQueueNode;
+        currQueueNode = currQueueNode->getNext();
+        delete tempQueueNode;
+        tempQueueNode = NULL;
+    }
+    currQueueNode = NULL;
+
+    // Then, delete the delete the socketLockList
+    currSocketNode = sockets;
+    sockets = NULL;
+    while(currSocketNode != NULL){
+        tempSocketNode = currSocketNode;
+        currSocketNode = currSocketNode->getNext();
+        delete tempSocketNode;
+        tempSocketNode = NULL;
+    }
+    currSocketNode = NULL;
+
+    // Finally, delete the scheduler
+    delete pool;
+
+    exit(0);
 }
 
 void perror_exit(char *message)
@@ -50,9 +105,10 @@ void addToQueue(int socket, string filename)
 void *commThread(void *arg)
 {
     int newsock = *(int *)arg;
-    char buf[1001];
+    char buf[4096+1];
+    char * writeBuf = NULL;
     int readSize;
-    while ((readSize = read(newsock, buf, 1000)) > 0)
+    while ((readSize = read(newsock, buf, 4096)) > 0)
     {
         cout << "buf: " << buf << "\n";
         if (dirExists(buf))
@@ -68,10 +124,14 @@ void *commThread(void *arg)
                 sockets->addToList(newsock);
             }
             pthread_mutex_unlock(&socketListLock);
-            if (write(newsock, to_string(blockSize).c_str(), 256) < 0)
+            writeBuf = new char[256];
+            memset(writeBuf,0,256);
+            strcpy(writeBuf,to_string(blockSize).c_str() );
+            if (write(newsock, writeBuf, 256) < 0)
             {
                 perror_exit((char*)(string("write").c_str()));
             }
+            delete[] writeBuf;
             getDirStructure(buf, newsock);
         }
         else
@@ -126,7 +186,7 @@ void getDirStructure(char *dir, int socket)
         // Set the write end of the pipe to get the output of inotifywait
         close(listenerPipe[0]);
         dup2(listenerPipe[1], STDOUT_FILENO);
-        cout<<"dir: "<<dir<<"\n";
+
         // List files and directories
         if(execl("/bin/ls", "/bin/ls", "-R", dir, NULL) < 0){
             perror("execl");
@@ -134,7 +194,6 @@ void getDirStructure(char *dir, int socket)
     }
     else
     {
-        sleep(1);
         memset(inbuf, 0, 256);
         cout<<"GOT HERE\n";
         readReturn = read(listenerPipe[0], inbuf, 256);
@@ -277,4 +336,41 @@ void copyFile(char *fileName, int socket)
     } while (strcmp(buf, "EOF\n") != 0);
 
     createFile(fileName, fileContents);
+}
+
+void sendFile(int socket, string fileName)
+{
+    char fileNameBuf[4096+1];
+    char eofBuf[blockSize+1];
+    int textFile, readReturn;
+    char msgbuf[blockSize+1];
+
+    memset(msgbuf,0, blockSize+1);
+    memset(fileNameBuf, 0,4096 +1);
+    memset(eofBuf,0 , blockSize+1);
+
+    strcpy(fileNameBuf,fileName.c_str() );
+    strcpy(eofBuf,string("EOF\n").c_str() );
+
+    if (write(socket,fileNameBuf, 4096) < 0)
+    {
+        perror_exit((char*)(string("write").c_str()));
+    }
+    textFile = open(fileName.c_str(), O_RDONLY);
+    readReturn = read(textFile, msgbuf, blockSize);
+    while (readReturn > 0)
+    {
+        
+        if (write(socket, msgbuf, blockSize) < 0)
+        {
+            perror_exit((char*)(string("write").c_str()));
+        }
+        memset(msgbuf,0,blockSize+1);
+        readReturn = read(textFile, msgbuf, blockSize);
+    }
+    if (write(socket, eofBuf, blockSize) < 0)
+    {
+        perror_exit((char*)(string("write").c_str()));
+    }
+    close(textFile);
 }

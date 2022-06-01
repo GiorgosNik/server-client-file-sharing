@@ -16,6 +16,7 @@ public:
     void addToList(int givenSocket);
     void lock(int givenSocket);
     void unlock(int givenSocket);
+    socketLockList* getNext();
 };
 
 #endif // SOCKETLOCKLIST

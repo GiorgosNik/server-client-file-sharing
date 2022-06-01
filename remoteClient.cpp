@@ -1,9 +1,7 @@
 #include "utils.hpp"
 
 using namespace std;
-void child_server(int newsock);
-void perror_exit(char *message);
-void sigchld_handler(int sig);
+
 
 
 int main(int argc, char *argv[])
@@ -17,7 +15,7 @@ int main(int argc, char *argv[])
     string portArg("-p");
     string ipArg("-i");
     string directoryArg("-d");
-    char buf[256];
+    char buf[4096+1];
     char tempIpBuff[1000];
     struct sockaddr_in server;
     struct sockaddr *serverptr = (struct sockaddr *)&server;
@@ -98,7 +96,7 @@ int main(int argc, char *argv[])
     }
 
     cout << "Connecting to " << serverIp << " port " << port << "\n";
-    if (write(sock, directoryArray, 256) < 0)
+    if (write(sock, directoryArray, 4096) < 0)
         perror_exit((char*)(string("write")).c_str());
     if (read(sock, buf, 256) < 0)
             perror_exit((char*)(string("read")).c_str());  
@@ -106,7 +104,7 @@ int main(int argc, char *argv[])
     cout<<"BlockSize "<<blockSize<<"\n";
     do
     {
-        if (read(sock, buf, 256) < 0)
+        if (read(sock, buf, 4096) < 0)
             perror_exit((char*)(string("read")).c_str());
         if (strcmp(buf, "END\n") != 0)
         {
