@@ -13,7 +13,7 @@ public:
     pidList(pthread_t id);
     pthread_t getId();
     void addToList(pthread_t id);
-    pidList* getNext();
+    pidList *getNext();
 };
 
 #endif // PIDLIST

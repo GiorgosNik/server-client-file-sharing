@@ -4,10 +4,9 @@
 
 using namespace std;
 
-
 int main(int argc, char *argv[])
 {
-    // Init the configuration with defualt values
+    // Initialise the configuration with defualt values
     int port = -1;
     int threadPoolSize = -1;
     int queueSize = -1;
@@ -40,7 +39,6 @@ int main(int argc, char *argv[])
     {
         for (int i = 1; i < 9; i += 2)
         {
-            // Port Argument
             if (portArg.compare(string(argv[i])) == 0)
             {
                 if (port == -1)
@@ -91,7 +89,7 @@ int main(int argc, char *argv[])
             }
         }
     }
-    cout<<"Server's parameters are: ";
+    cout << "Server's parameters are: ";
     cout << "Port: " << port << "\nThread Pool Size: " << threadPoolSize << "\nBlock Size: " << blockSize << "\nQueue Size: " << queueSize << "\n";
 
     queueLimit = queueSize;
@@ -101,7 +99,7 @@ int main(int argc, char *argv[])
     /* Create socket */
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        perror_exit((char*)(string("socket").c_str()));
+        perror_exit((char *)(string("socket").c_str()));
     }
 
     server.sin_family = AF_INET; /* Internet domain */
@@ -111,13 +109,13 @@ int main(int argc, char *argv[])
     /* Bind socket to address */
     if (bind(sock, serverptr, sizeof(server)) < 0)
     {
-        perror_exit((char*)(string("bind").c_str()));
+        perror_exit((char *)(string("bind").c_str()));
     }
 
     /* Listen for connections */
     if (listen(sock, 5) < 0)
     {
-        perror_exit((char*)(string("listen").c_str()));
+        perror_exit((char *)(string("listen").c_str()));
     }
 
     cout << "Listening for connections to port " << port << "\n";
@@ -126,13 +124,17 @@ int main(int argc, char *argv[])
     {
         if ((newsock = accept(sock, clientptr, &clientlen)) < 0)
         {
-            perror_exit((char*)(string("accept").c_str()));
+            perror_exit((char *)(string("accept").c_str()));
         }
         cout << "Accepted connection\n";
-        pthread_create(&id, NULL, &commThread, (void*)(&newsock));
-        if(commThreads == NULL){
+        // Pass the connection to a new communication thread and keep listening
+        pthread_create(&id, NULL, &commThread, (void *)(&newsock));
+        if (commThreads == NULL)
+        {
             commThreads = new pidList(id);
-        }else{
+        }
+        else
+        {
             commThreads->addToList(id);
         }
     }

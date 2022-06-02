@@ -47,6 +47,7 @@ void socketLockList::unlock(int givenSocket)
     }
 }
 
-socketLockList*  socketLockList::getNext(){
+socketLockList *socketLockList::getNext()
+{
     return this->next;
 }

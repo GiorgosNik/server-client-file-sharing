@@ -24,6 +24,7 @@ void pidList::addToList(pthread_t id)
     }
 }
 
-pidList*  pidList::getNext(){
+pidList *pidList::getNext()
+{
     return this->next;
 }

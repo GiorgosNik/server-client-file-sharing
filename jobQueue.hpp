@@ -1,7 +1,6 @@
 #ifndef JOBQUEUE
 #define JOBQUEUE
 
-
 #include "utils.hpp"
 class jobQueue
 {
@@ -14,7 +13,7 @@ public:
     jobQueue(int givenSocket, std::string givenFileName);
     int getSocket();
     std::string getFilename();
-    jobQueue * getNext();
+    jobQueue *getNext();
     void addJob(int givenSocket, std::string givenFileName);
     bool isLast(int givenSocket);
 };

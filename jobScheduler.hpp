@@ -9,7 +9,8 @@ class jobScheduler
 private:
     int execution_threads;
     pthread_t *tids;
-    int * subjectSocket;
+    int *subjectSocket;
+
 public:
     jobScheduler(int execution_threads);
     const int getThreads() const;
@@ -21,4 +22,4 @@ public:
 };
 
 void *execute_all_jobs(void *arg);
-#endif //JOBSCHEDULER 
+#endif // JOBSCHEDULER
