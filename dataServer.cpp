@@ -91,7 +91,8 @@ int main(int argc, char *argv[])
             }
         }
     }
-    cout << "Port: " << port << " threads: " << threadPoolSize << " blockSize " << blockSize << " queueSize " << queueSize << "\n";
+    cout<<"Server's parameters are: ";
+    cout << "Port: " << port << "\nThread Pool Size: " << threadPoolSize << "\nBlock Size: " << blockSize << "\nQueue Size: " << queueSize << "\n";
 
     queueLimit = queueSize;
 

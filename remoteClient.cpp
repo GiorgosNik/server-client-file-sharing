@@ -71,7 +71,8 @@ int main(int argc, char *argv[])
             }
         }
     }
-    cout << "Port: " << port << " serverIp: " << serverIp << " directory " << directory << "\n";
+    cout << "Client’s parameters are:\n";
+    cout << "Port: " << port << "\nServer Address: " << serverIp << "\nDirectory to copy " << directory << "\n";
     char directoryArray[directory.size() + 1]; // as 1 char space for null is also required
     strcpy(directoryArray, directory.c_str());
 
@@ -101,7 +102,7 @@ int main(int argc, char *argv[])
     if (read(sock, buf, 256) < 0)
             perror_exit((char*)(string("read")).c_str());  
     blockSize = atoi(buf);
-    cout<<"BlockSize "<<blockSize<<"\n";
+    cout<<"Received Server Block Size: "<<blockSize<<"\n";
     do
     {
         if (read(sock, buf, 4096) < 0)

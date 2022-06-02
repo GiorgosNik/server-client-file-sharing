@@ -62,6 +62,8 @@ jobScheduler ::~jobScheduler()
 void *execute_all_jobs(void *arg)
 {
     jobQueue *job = NULL;
+    pthread_t self = pthread_self();
+
     while (1)
     {
         pthread_mutex_lock(&queueLock);
@@ -84,6 +86,8 @@ void *execute_all_jobs(void *arg)
         pthread_mutex_unlock(&subjectLock);
         pthread_mutex_unlock(&queueLock);
         sockets->lock(job->getSocket());
+
+        cout<<"[Thread "<<self<<"]: Worker received file to send: "<<job->getFilename()<<"\n";
 
         sendFile(job->getSocket(), job->getFilename());
         pthread_mutex_lock(&subjectLock);

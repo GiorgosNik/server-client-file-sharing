@@ -25,7 +25,8 @@ void sigintHandler(int sig){
 
     pidList* currPidNode = NULL;
     pidList* tempPidNode = NULL;
-    cout<<"\nDELETING\n";
+    cout<<"\n#### Server Received SIGINT ####\n";
+    cout<<"Performing Cleanup\n";
 
     // Wait for all workers to finish and exit
     globalExit = true;
@@ -72,7 +73,8 @@ void sigintHandler(int sig){
 
     // Finally, delete the scheduler
     delete pool;
-
+    cout<<"Server Cleanup Complete\n";
+    cout<<"Exiting...\n";
     exit(0);
 }
 
@@ -110,10 +112,8 @@ void *commThread(void *arg)
     int readSize;
     while ((readSize = read(newsock, buf, 4096)) > 0)
     {
-        cout << "buf: " << buf << "\n";
         if (dirExists(buf))
         {
-            cout << "Directory Found\n";
             pthread_mutex_lock(&socketListLock);
             if (sockets == NULL)
             {
@@ -136,7 +136,6 @@ void *commThread(void *arg)
         }
         else
         {
-            cout << "Directory does not exist\n";
             if (write(newsock, string("Directory does not exist\n").c_str(), 256) < 0)
             {
                 perror_exit((char*)(string("write").c_str()));
@@ -166,6 +165,9 @@ void getDirStructure(char *dir, int socket)
     pid_t pid;
     string buff = "", directory, fileName;
     int listenerPipe[2], readReturn;
+    pthread_t self = pthread_self();
+
+    cout<<"[Thread "<<self<<"]: About to scan directory: "<<dir<<"\n";
 
     // Create Pipe for listener
     if (pipe(listenerPipe) == -1)
@@ -195,9 +197,7 @@ void getDirStructure(char *dir, int socket)
     else
     {
         memset(inbuf, 0, 256);
-        cout<<"GOT HERE\n";
         readReturn = read(listenerPipe[0], inbuf, 256);
-        cout<<"GOT HERE\n";
         buff += string(inbuf);
         memset(inbuf, 0, 256);
 
@@ -212,7 +212,6 @@ void getDirStructure(char *dir, int socket)
             perror(" Read from pipe \n");
             exit(1);
         }
-        cout << "Read LS: " << buff << "\n####\n";
         strTokBuff = new char[buff.length() + 1];
         strcpy(strTokBuff, buff.c_str());
         lineToken = strtok_r(strTokBuff, "\n", &temp1);
@@ -221,17 +220,18 @@ void getDirStructure(char *dir, int socket)
             tempLineToken = new char[strlen(lineToken) + 1];
             strcpy(tempLineToken, lineToken);
             directoryToken = strtok_r(tempLineToken, ":", &temp2);
+            // Line represents a directory
             if (directoryToken != NULL && (strcmp(tempLineToken, lineToken) != 0))
             {
-                // Line represents a directory
+                
                 directory = directoryToken;
             }
             else
             {
+                // Line represents a file
                 if (!dirExists((char *)(directory+ "/" +string(lineToken) + "/").c_str()))
                 {
-                    cout<<"Sending file "<<(string(directory) + "/" + string(lineToken))<<" to queue\n";
-                    // Line represents a file
+                    cout<<"[Thread "<<self<<"]: Adding file: "<<(string(directory) + "/" + string(lineToken))<<" to queue\n";
                     addToQueue(socket, string(directory) + "/" + string(lineToken));
                 }
             }
@@ -248,6 +248,7 @@ void createFile(char *fileName, string contents)
     string directory = fileName;
     string dirAcum = "";
     char *fileNameBuf, *token, *temp;
+    pthread_t self = pthread_self();
 
     dirSize = string(fileName).find_last_of("/");
     directory.resize(dirSize + 1);
@@ -260,7 +261,6 @@ void createFile(char *fileName, string contents)
     {
         directory.erase(directory.begin());
     }
-    cout << "Directory: " << directory << "\n";
 
     if (!dirExists((char *)(string("./tmp/")).c_str()))
     {
@@ -294,7 +294,8 @@ void createFile(char *fileName, string contents)
     // If file exists, delete
     if (dirExists((char *)(string("./tmp/") + string(fileName)).c_str()))
     {
-        cout << "Directory Exists: " << (string("./tmp/") + string(fileName)) << "\n";
+        cout << "[Thread "<<self<<"]: Directory Exists: " << (string("./tmp/") + string(fileName)) << "\n";
+        cout << "[Thread "<<self<<"]: Deleting...\n";
         if (remove((string("./tmp/") + string(fileName)).c_str()) != 0)
         {
             perror((char*)(string("delete")).c_str());
@@ -321,8 +322,9 @@ void copyFile(char *fileName, int socket)
 {
     char buf[blockSize + 1];
     string fileContents = "";
-    cout << "Filename: " << fileName << "\n";
+    pthread_t self = pthread_self();
 
+    cout<<"[Thread "<<self<<"]: Received file: "<<fileName<<"\n";
     do
     {
         memset(buf, 0, blockSize + 1);
@@ -344,6 +346,7 @@ void sendFile(int socket, string fileName)
     char eofBuf[blockSize+1];
     int textFile, readReturn;
     char msgbuf[blockSize+1];
+
 
     memset(msgbuf,0, blockSize+1);
     memset(fileNameBuf, 0,4096 +1);
